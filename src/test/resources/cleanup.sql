@@ -1,0 +1,2 @@
+TRUNCATE TABLE task, robot, production_line
+RESTART IDENTITY CASCADE;

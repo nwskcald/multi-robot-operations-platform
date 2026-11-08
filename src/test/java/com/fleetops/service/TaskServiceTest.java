@@ -48,7 +48,7 @@ class TaskServiceTest{
     }
 
     @Test 
-    void createTask_productionLineNotFound_fail(){
+    void createTask_productionLineNotFound_throwsException(){
         when(productionLineRepository.findById(ProductionLineType.LINE_A))
             .thenReturn(Optional.empty());
         

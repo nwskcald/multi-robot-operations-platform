@@ -30,7 +30,7 @@ class RobotTest{
     }
 
     @Test
-    void robotStartDelivery_alreadyDelivering_fail(){
+    void robotStartDelivery_alreadyDelivering_throwsException(){
         Robot robot = Robot.register();
 
         ProductionLine lineA = new ProductionLine(ProductionLineType.LINE_A);
@@ -51,7 +51,7 @@ class RobotTest{
     }
 
     @Test 
-    void robotStartDelivery_nullTask_fail(){
+    void robotStartDelivery_nullTask_throwsException(){
         Robot robot = Robot.register();
 
         assertThrows(
@@ -65,7 +65,7 @@ class RobotTest{
     }
 
     @Test
-    void robotStartDelivery_offline_fail(){
+    void robotStartDelivery_offline_throwsException(){
         Robot robot = Robot.register();
         ProductionLine line = new ProductionLine(ProductionLineType.LINE_A);
         Task task = new Task(line);

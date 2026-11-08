@@ -2,7 +2,7 @@
 
 # V1 정상 운송 시나리오
 
-## 1. Task 생성 (TaskService)
+## 1-1. Task 생성 (TaskService)
 
 1. Platform이 API 요청을 받아 Task를 생성한다.
 2. Task의 초기 상태를 설정한다.
@@ -12,6 +12,16 @@
    - `robotId`: null
 3. TaskRepository를 통해 PostgreSQL에 저장한다.
 4. WAITING 상태의 Task들이 논리적인 TaskQueue를 구성한다.
+
+## 1-2. Robot 등록 (RobotService)
+
+1. Platform이 API 요청을 받아 Robot을 등록한다.
+2. Robot의 초기상태를 설정한다.
+   - id : Db에서 자동생성
+   - operationStatus: IDLE
+   - connectionStatus: ONLINE
+   - task: null
+3. RobotRepository를 통해 PostgreSQL에 저장한다.
 
 ## 2. Robot에게 Task 배정 (TaskService)
 

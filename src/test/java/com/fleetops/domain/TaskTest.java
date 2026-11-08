@@ -18,7 +18,7 @@ class TaskTest{
     }
 
     @Test
-    void taskCreate_nullProductionLine_fail(){
+    void taskCreate_nullProductionLine_throwsException(){
         assertThrows(
             IllegalArgumentException.class,
             () -> new Task(null)
@@ -38,7 +38,7 @@ class TaskTest{
     }
 
     @Test
-    void taskAssign_nullRobot_fail(){
+    void taskAssign_nullRobot_throwsException(){
         ProductionLine line = new ProductionLine(ProductionLineType.LINE_A);
         Task task = new Task(line);
 
@@ -53,7 +53,7 @@ class TaskTest{
 
 
     @Test
-    void taskAssign_differentRobot_fail(){
+    void taskAssign_differentRobot_throwsException(){
         ProductionLine line = new ProductionLine(ProductionLineType.LINE_A);
         Task task = new Task(line);
         Robot robot1 = Robot.register();
@@ -71,7 +71,7 @@ class TaskTest{
     }
 
     @Test 
-    void taskAssign_sameRobot_fail(){
+    void taskAssign_sameRobot_throwsException(){
         ProductionLine line = new ProductionLine(ProductionLineType.LINE_A);
         Task task = new Task(line);
         Robot robot = Robot.register();
