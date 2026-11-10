@@ -23,4 +23,21 @@ public class RobotService{
         Robot robot = Robot.register();
         return robotRepository.save(robot);
     }
+
+    @Transactional 
+    public void reportArrival(Long taskId, Long robotId){
+        Robot robot = robotRepository.findByIdForUpdate(robotId)
+            .orElseThrow(
+                () -> new RobotNotFoundException(robotId)
+            );
+        
+        if(
+            robot.getCurrentTask() == null ||
+            !robot.getCurrentTask().getId().equals(taskId)
+        ){
+            throw new IllegalStateException("일치하지 않는 작업입니다.");
+        }
+
+        robot.arriveAtDestination();
+    }
 }

@@ -70,4 +70,20 @@ public class Robot{
         this.currentTask = task;
         this.operationStatus = RobotOperationStatus.DELIVERING;
     }
+
+    public void arriveAtDestination(){
+        if(this.operationStatus != RobotOperationStatus.DELIVERING){
+            throw new IllegalStateException("작업중이지 않은 로봇입니다.");
+        }
+
+        if(this.connectionStatus != RobotConnectionStatus.ONLINE){
+            throw new IllegalStateException("ONLINE 상태가 아닌 로봇입니다.");
+        }
+
+        if(this.currentTask == null){
+            throw new IllegalStateException("작업중이지 않은 로봇입니다.");
+        }
+
+        this.operationStatus = RobotOperationStatus.WAITING_FOR_HANDOVER;
+    }
 }
