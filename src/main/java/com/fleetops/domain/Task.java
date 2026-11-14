@@ -67,4 +67,13 @@ public class Task{
         this.robot = robot;
         this.status = TaskStatus.ASSIGNED;
     }
+
+    // Task 상태 변경 (ASSIGNED -> COMPLETED)
+    public void complete(){
+        if(this.status != TaskStatus.ASSIGNED){
+            throw new IllegalStateException("ASSIGNED 상태에서만 작업을 완료할 수 있습니다.");
+        }
+
+        this.status = TaskStatus.COMPLETED;
+    }
 }

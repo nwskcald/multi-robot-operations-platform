@@ -21,7 +21,8 @@ class MockAmrGatewayTest {
             received.countDown();
         });
         server.start();
-        var mockAmr = new MockAmr(new ArrivalReporter("http://localhost:" + server.getAddress().getPort()));
+        var mockAmr = new MockAmr(new ArrivalReporter("http://localhost:" + server.getAddress().getPort()),
+            new HandoverCompletedReporter("http://localhost:" + server.getAddress().getPort()));
         try {
             new MockAmrGateway(mockAmr).deliver(1L, 2L, 1);
             assertFalse(received.await(100, TimeUnit.MILLISECONDS));

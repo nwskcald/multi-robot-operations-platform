@@ -12,8 +12,14 @@ public class MockAmrConfiguration {
         return new ArrivalReporter(baseUrl);
     }
 
+    @Bean
+    HandoverCompletedReporter handoverCompletedReporter(
+            @Value("${mock-amr.base-url:http://localhost:${server.port:8080}}") String baseUrl) {
+        return new HandoverCompletedReporter(baseUrl);
+    }
+
     @Bean(destroyMethod = "shutdown")
-    MockAmr mockAmr(ArrivalReporter arrivalReporter) {
-        return new MockAmr(arrivalReporter);
+    MockAmr mockAmr(ArrivalReporter arrivalReporter, HandoverCompletedReporter handoverCompletedReporter) {
+        return new MockAmr(arrivalReporter, handoverCompletedReporter);
     }
 }

@@ -3,15 +3,12 @@ package com.fleetops.integration;
 import com.fleetops.repository.*;
 import com.fleetops.service.*;
 import com.fleetops.domain.*;
-import com.fleetops.exception.ProductionLineNotFoundException;
 
 import org.junit.jupiter.api.Test;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
 import static org.junit.jupiter.api.Assertions.*;
-
-import javax.swing.text.html.parser.Entity;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

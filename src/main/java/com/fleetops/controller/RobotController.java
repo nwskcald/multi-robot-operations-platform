@@ -2,6 +2,7 @@ package com.fleetops.controller;
 
 import com.fleetops.service.RobotService;
 
+import com.fleetops.service.ProductionLineService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,7 +12,10 @@ public class RobotController{
 
     private final RobotService robotService;
 
-    public RobotController(RobotService robotService){
+    private final ProductionLineService productionLineService;
+
+    public RobotController(RobotService robotService, ProductionLineService productionLineService){
+        this.productionLineService = productionLineService;
         this.robotService = robotService;
     }
 
@@ -29,6 +33,20 @@ public class RobotController{
         @PathVariable Long taskId
     ){
         robotService.reportArrival(taskId, robotId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{robotId}/tasks/{taskId}/handover")
+    public ResponseEntity<Void> requestHandover(@PathVariable Long robotId, @PathVariable Long taskId) {
+        productionLineService.requestHandover(taskId, robotId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{robotId}/handover-completion")
+    public ResponseEntity<Void> completeHandover(
+        @PathVariable Long robotId
+    ){
+        robotService.completeHandover(robotId);
         return ResponseEntity.noContent().build();
     }
 } 

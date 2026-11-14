@@ -43,16 +43,12 @@ public class TaskService{
 
     @Transactional 
     public void assignTaskToRobot(Long taskId, Long robotId){
-        Task task = taskRepository.findByIdForUpdate(taskId)
-            .orElseThrow(
-                () -> new TaskNotFoundException(taskId)
-            );
-        
+        // 배정·도착·인계는 Robot → Task → ProductionLine 순으로 잠근다.
         Robot robot = robotRepository.findByIdForUpdate(robotId)
-            .orElseThrow(
-                () -> new RobotNotFoundException(robotId)
-            );
-        
+            .orElseThrow(() -> new RobotNotFoundException(robotId));
+        Task task = taskRepository.findByIdForUpdate(taskId)
+            .orElseThrow(() -> new TaskNotFoundException(taskId));
+
         task.assignTo(robot);
         robot.startDelivery(task);
         events.publishEvent(

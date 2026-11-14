@@ -86,4 +86,22 @@ public class Robot{
 
         this.operationStatus = RobotOperationStatus.WAITING_FOR_HANDOVER;
     }
+
+    // Robot 상태 변경 (WAITING_FOR_HANDOVER -> HANDOVER)
+    public void startHandover(){
+        if(this.operationStatus != RobotOperationStatus.WAITING_FOR_HANDOVER){
+            throw new IllegalStateException("Robot이 자재인계 시작을 할 수 없는 상태입니다.");
+        }
+
+        this.operationStatus = RobotOperationStatus.HANDOVER;
+    }
+
+    // Robot 상태 변경 (HANDOVER -> RETURNING)
+    public void finishHandover(){
+        if(this.operationStatus != RobotOperationStatus.HANDOVER){
+            throw new IllegalStateException("Robot이 자재인계 완료를 할 수 없는 상태입니다.");
+        }
+
+        this.operationStatus = RobotOperationStatus.RETURNING;
+    }
 }

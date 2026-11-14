@@ -40,6 +40,18 @@ public class RobotArrivalIntegrationTest{
     static class CallbackConfiguration {
         @org.springframework.context.annotation.Bean
         @org.springframework.context.annotation.Primary
+        HandoverCompletedReporter testHandoverReporter(org.springframework.core.env.Environment environment) {
+            return new HandoverCompletedReporter("http://localhost") {
+                @Override
+                public void reportHandoverCompleted(Long robotId) throws Exception {
+                    new HandoverCompletedReporter("http://localhost:" + environment.getProperty("local.server.port"))
+                        .reportHandoverCompleted(robotId);
+                }
+            };
+        }
+
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
         ArrivalReporter testArrivalReporter(org.springframework.core.env.Environment environment) {
             return new ArrivalReporter("http://localhost") {
                 @Override
@@ -101,5 +113,21 @@ public class RobotArrivalIntegrationTest{
                     );
                 }
             );
+
+        var handover = http.postForEntity("/api/robots/" + robot.getId()
+            + "/tasks/" + task.getId() + "/handover", null, Void.class);
+        assertEquals(204, handover.getStatusCode().value());
+        assertEquals(RobotOperationStatus.HANDOVER,
+            robotRepository.findById(robot.getId()).orElseThrow().getOperationStatus());
+        assertEquals(ProductionLineStatus.OCCUPIED,
+            productionLineRepository.findById(type).orElseThrow().getStatus());
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            assertEquals(RobotOperationStatus.RETURNING,
+                robotRepository.findById(robot.getId()).orElseThrow().getOperationStatus());
+            assertEquals(TaskStatus.COMPLETED, taskRepository.findById(task.getId()).orElseThrow().getStatus());
+            var released = productionLineRepository.findById(type).orElseThrow();
+            assertEquals(ProductionLineStatus.AVAILABLE, released.getStatus());
+            assertNull(released.getOccupyingRobotId());
+        });
     }
 }
