@@ -44,6 +44,6 @@ public class MockAmr {
     }
 
     public void shutdown() {
-        scheduler.shutdown();
+        scheduler.shutdownNow();
     }
 }

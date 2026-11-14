@@ -51,14 +51,6 @@ public class MockAmrRunner implements ApplicationRunner {
 
         int travelSeconds = type.getTravelSeconds();
 
-        MockAmr mockAmr = new MockAmr(new ArrivalReporter());
-
-        mockAmr.simulateDelivery(
-            robot.getId(),
-            task.getId(),
-            travelSeconds
-        );
-
         System.out.println(
             "[DEMO] Robot ID = " + robot.getId()
             + ", Task ID = " + task.getId()

@@ -9,10 +9,16 @@ public class ArrivalReporter {
 
     private final HttpClient client = HttpClient.newHttpClient();
 
+    private final String baseUrl;
+
+    public ArrivalReporter(String baseUrl){
+        this.baseUrl = baseUrl;
+    }
+
     public void reportArrival(Long robotId, Long taskId)
             throws Exception {
 
-        String url = "http://localhost:8080/api/robots/"
+        String url = baseUrl + "/api/robots/"
                 + robotId + "/tasks/" + taskId + "/arrival";
 
         HttpRequest request = HttpRequest.newBuilder()

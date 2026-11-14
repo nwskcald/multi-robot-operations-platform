@@ -15,6 +15,14 @@ public class RobotController{
         this.robotService = robotService;
     }
 
+    public record RobotCreatedResponse(Long robotId) {}
+
+    @PostMapping
+    public ResponseEntity<RobotCreatedResponse> register() {
+        return ResponseEntity.status(201).body(
+            new RobotCreatedResponse(robotService.registerRobot().getId()));
+    }
+
     @PostMapping("/{robotId}/tasks/{taskId}/arrival")
     public ResponseEntity<Void> reportArrival(
         @PathVariable Long robotId,

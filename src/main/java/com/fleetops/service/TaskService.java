@@ -5,6 +5,8 @@ import com.fleetops.repository.*;
 import com.fleetops.exception.*;
 
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
+import com.fleetops.command.TaskAssignedEvent;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -14,14 +16,18 @@ public class TaskService{
     private final RobotRepository robotRepository;
     private final ProductionLineRepository productionLineRepository;
 
+    private final ApplicationEventPublisher events;
+
     public TaskService(
         TaskRepository taskRepository,
         RobotRepository robotRepository,
-        ProductionLineRepository productionLineRepository
+        ProductionLineRepository productionLineRepository,
+        ApplicationEventPublisher events
     ){
         this.taskRepository = taskRepository;
         this.robotRepository = robotRepository;
         this.productionLineRepository = productionLineRepository;
+        this.events = events;
     }
 
     @Transactional
@@ -49,5 +55,13 @@ public class TaskService{
         
         task.assignTo(robot);
         robot.startDelivery(task);
+        events.publishEvent(
+            new TaskAssignedEvent(
+                robotId, 
+                taskId,
+                task.getProductionLine().getType().getTravelSeconds()
+            )
+        );
     }
+
 }

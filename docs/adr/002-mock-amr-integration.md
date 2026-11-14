@@ -1,6 +1,6 @@
 # ADR-002: Mock AMR 명령 전달 구조 개선
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-14
 - **Related:** ADR-001 (Mock AMR 시뮬레이션 도입)
 

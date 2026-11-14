@@ -25,6 +25,12 @@ class TaskServiceTest{
     @Mock
     private TaskRepository taskRepository;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher events;
+
+    @Mock
+    private RobotRepository robotRepository;
+
     @InjectMocks
     private TaskService taskService;
 
@@ -58,5 +64,30 @@ class TaskServiceTest{
         );
 
         verify(taskRepository, never()).save(any(Task.class));
+    }
+    @Test
+    void assignmentPublishesCommandDataAfterDomainTransitions() {
+        Task task = new Task(new ProductionLine(ProductionLineType.LINE_A));
+        Robot robot = Robot.register();
+        when(taskRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(task));
+        when(robotRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(robot));
+
+        taskService.assignTaskToRobot(2L, 1L);
+
+        assertEquals(TaskStatus.ASSIGNED, task.getStatus());
+        assertEquals(RobotOperationStatus.DELIVERING, robot.getOperationStatus());
+        verify(events).publishEvent(new com.fleetops.command.TaskAssignedEvent(1L, 2L, 5));
+    }
+
+    @Test
+    void invalidAssignmentDoesNotPublishCommand() {
+        Task task = new Task(new ProductionLine(ProductionLineType.LINE_A));
+        Robot robot = Robot.register();
+        robot.disconnect();
+        when(taskRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(task));
+        when(robotRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(robot));
+
+        assertThrows(IllegalStateException.class, () -> taskService.assignTaskToRobot(2L, 1L));
+        verifyNoInteractions(events);
     }
 }
