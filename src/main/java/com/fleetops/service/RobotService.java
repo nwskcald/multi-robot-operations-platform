@@ -3,9 +3,11 @@ package com.fleetops.service;
 import com.fleetops.domain.*;
 import com.fleetops.repository.*;
 import com.fleetops.exception.*;
+import com.fleetops.command.RobotFinishHandoverEvent;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 @Service
 public class RobotService{
@@ -14,14 +16,18 @@ public class RobotService{
     private final TaskRepository taskRepository;
     private final ProductionLineRepository productionLineRepository;
 
+    private final ApplicationEventPublisher events;
+
     public RobotService(
         RobotRepository robotRepository,
         TaskRepository taskRepository,
-        ProductionLineRepository productionLineRepository
+        ProductionLineRepository productionLineRepository,
+        ApplicationEventPublisher events
     ){
         this.robotRepository = robotRepository;
         this.taskRepository = taskRepository;
         this.productionLineRepository = productionLineRepository;
+        this.events = events;
     }
 
     @Transactional
@@ -53,16 +59,13 @@ public class RobotService{
             .orElseThrow(
                 () -> new RobotNotFoundException(robotId)
             );
-        Task currentTask = robot.getCurrentTask();
-        if (currentTask == null) {
-            throw new IllegalStateException(
-                "현재 수행 중인 Task가 없습니다."
-            );
+        if (robot.getCurrentTask() == null) {
+            throw new IllegalStateException("현재 수행 중인 Task가 없습니다.");
         }
 
-        Task task = taskRepository.findByIdForUpdate(currentTask.getId())
+        Task task = taskRepository.findByIdForUpdate(robot.getCurrentTask().getId())
             .orElseThrow(
-                () -> new TaskNotFoundException(currentTask.getId())
+                () -> new TaskNotFoundException(robot.getCurrentTask().getId())
             );
         if (task.getRobot() == null || !robotId.equals(task.getRobot().getId())) {
             throw new IllegalStateException("Task가 해당 Robot에게 배정되지 않았습니다.");
@@ -76,5 +79,37 @@ public class RobotService{
         robot.finishHandover();
         task.complete();
         productionLine.release(robotId);
+        events.publishEvent(
+            new RobotFinishHandoverEvent(
+                robotId,
+                productionLine.getType().getTravelSeconds()
+            )
+        );
+    }
+
+    @Transactional 
+    public void completeReturn(Long robotId){
+        Robot robot = robotRepository.findByIdForUpdate(robotId)
+            .orElseThrow(
+                () -> new RobotNotFoundException(robotId)
+            );
+        if(robot.getCurrentTask() == null){
+            throw new IllegalStateException("현재 수행 중인 Task가 없습니다.");
+        }
+
+        Task task = taskRepository.findByIdForUpdate(robot.getCurrentTask().getId())
+            .orElseThrow(
+                () -> new TaskNotFoundException(robot.getCurrentTask().getId())
+            );
+        
+        if(task.getRobot() == null || !task.getRobot().getId().equals(robotId)){
+            throw new IllegalStateException("Task가 해당 Robot에게 배정되지 않았습니다.");
+        }
+
+        if(!task.isTaskStatusCompleted()){
+            throw new IllegalStateException("아직 완료되지 않은 Task 입니다.");
+        }
+
+        robot.finishReturn();
     }
 }

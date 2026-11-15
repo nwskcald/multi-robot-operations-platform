@@ -7,9 +7,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MockAmrConfiguration {
     @Bean
-    ArrivalReporter arrivalReporter(
+    ProductionLineArrivalReporter productionLineArrivalReporter(
             @Value("${mock-amr.base-url:http://localhost:${server.port:8080}}") String baseUrl) {
-        return new ArrivalReporter(baseUrl);
+        return new ProductionLineArrivalReporter(baseUrl);
     }
 
     @Bean
@@ -18,8 +18,22 @@ public class MockAmrConfiguration {
         return new HandoverCompletedReporter(baseUrl);
     }
 
+    @Bean
+    BaseArrivalReporter baseArrivalReporter(
+            @Value("${mock-amr.base-url:http://localhost:${server.port:8080}}") String baseUrl) {
+        return new BaseArrivalReporter(baseUrl);
+    }
+
     @Bean(destroyMethod = "shutdown")
-    MockAmr mockAmr(ArrivalReporter arrivalReporter, HandoverCompletedReporter handoverCompletedReporter) {
-        return new MockAmr(arrivalReporter, handoverCompletedReporter);
+    MockAmr mockAmr(
+        ProductionLineArrivalReporter productionLineArrivalReporter,
+        HandoverCompletedReporter handoverCompletedReporter,
+        BaseArrivalReporter baseArrivalReporter
+    ){
+        return new MockAmr(
+            productionLineArrivalReporter, 
+            handoverCompletedReporter,
+            baseArrivalReporter
+        );
     }
 }

@@ -76,4 +76,12 @@ public class Task{
 
         this.status = TaskStatus.COMPLETED;
     }
+
+    public boolean isTaskStatusAssigned(){
+        return this.status == TaskStatus.ASSIGNED;
+    }
+
+    public boolean isTaskStatusCompleted(){
+        return this.status == TaskStatus.COMPLETED;
+    }
 }

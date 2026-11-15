@@ -66,28 +66,40 @@ class TaskServiceTest{
         verify(taskRepository, never()).save(any(Task.class));
     }
     @Test
-    void assignmentPublishesCommandDataAfterDomainTransitions() {
-        Task task = new Task(new ProductionLine(ProductionLineType.LINE_A));
+    void assignTaskToRobot_success_publishesEvent() {
+        // Given
+        ProductionLine line = new ProductionLine(ProductionLineType.LINE_A);
+        Task task = new Task(line);
         Robot robot = Robot.register();
+        com.fleetops.command.TaskAssignedEvent expectedEvent =
+            new com.fleetops.command.TaskAssignedEvent(1L, 2L, 5);
         when(taskRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(task));
         when(robotRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(robot));
 
+        // When
         taskService.assignTaskToRobot(2L, 1L);
 
+        // Then
         assertEquals(TaskStatus.ASSIGNED, task.getStatus());
         assertEquals(RobotOperationStatus.DELIVERING, robot.getOperationStatus());
-        verify(events).publishEvent(new com.fleetops.command.TaskAssignedEvent(1L, 2L, 5));
+        verify(events).publishEvent(expectedEvent);
     }
 
     @Test
-    void invalidAssignmentDoesNotPublishCommand() {
-        Task task = new Task(new ProductionLine(ProductionLineType.LINE_A));
+    void assignTaskToRobot_offlineRobot_doesNotPublishEvent() {
+        // Given
+        ProductionLine line = new ProductionLine(ProductionLineType.LINE_A);
+        Task task = new Task(line);
         Robot robot = Robot.register();
         robot.disconnect();
         when(taskRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(task));
         when(robotRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(robot));
 
-        assertThrows(IllegalStateException.class, () -> taskService.assignTaskToRobot(2L, 1L));
+        // When & Then
+        assertThrows(
+            IllegalStateException.class,
+            () -> taskService.assignTaskToRobot(2L, 1L)
+        );
         verifyNoInteractions(events);
     }
 }

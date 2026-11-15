@@ -27,8 +27,8 @@ public class RobotController{
             new RobotCreatedResponse(robotService.registerRobot().getId()));
     }
 
-    @PostMapping("/{robotId}/tasks/{taskId}/arrival")
-    public ResponseEntity<Void> reportArrival(
+    @PostMapping("/{robotId}/tasks/{taskId}/arrival/productionline")
+    public ResponseEntity<Void> reportProudctionLineArrival(
         @PathVariable Long robotId,
         @PathVariable Long taskId
     ){
@@ -37,7 +37,9 @@ public class RobotController{
     }
 
     @PostMapping("/{robotId}/tasks/{taskId}/handover")
-    public ResponseEntity<Void> requestHandover(@PathVariable Long robotId, @PathVariable Long taskId) {
+    public ResponseEntity<Void> requestHandover(
+        @PathVariable Long robotId, @PathVariable Long taskId
+    ) {
         productionLineService.requestHandover(taskId, robotId);
         return ResponseEntity.noContent().build();
     }
@@ -47,6 +49,14 @@ public class RobotController{
         @PathVariable Long robotId
     ){
         robotService.completeHandover(robotId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping({"/{robotId}/arrival/base"})
+    public ResponseEntity<Void> reportBaseArrivalReporter(
+        @PathVariable Long robotId
+    ){
+        robotService.completeReturn(robotId);
         return ResponseEntity.noContent().build();
     }
 } 

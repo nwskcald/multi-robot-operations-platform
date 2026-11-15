@@ -104,4 +104,17 @@ public class Robot{
 
         this.operationStatus = RobotOperationStatus.RETURNING;
     }
+
+    // Robot 상태 변경 (RETURNING -> IDLE)
+    public void finishReturn(){
+        if(this.operationStatus != RobotOperationStatus.RETURNING){
+            throw new IllegalStateException("Robot이 복귀 완료를 할 수 없는 상태입니다.");
+        }
+        if(this.currentTask == null){
+            throw new IllegalStateException("Robot에게 할당되었던 작업은 없는 상태입니다.");
+        }
+
+        this.currentTask = null;
+        this.operationStatus = RobotOperationStatus.IDLE;
+    }
 }

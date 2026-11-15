@@ -5,13 +5,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-public class ArrivalReporter {
+public class ProductionLineArrivalReporter {
 
     private final HttpClient client = HttpClient.newHttpClient();
 
     private final String baseUrl;
 
-    public ArrivalReporter(String baseUrl){
+    public ProductionLineArrivalReporter(String baseUrl){
         this.baseUrl = baseUrl;
     }
 
@@ -19,7 +19,7 @@ public class ArrivalReporter {
             throws Exception {
 
         String url = baseUrl + "/api/robots/"
-                + robotId + "/tasks/" + taskId + "/arrival";
+                + robotId + "/tasks/" + taskId + "/arrival/productionline";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))

@@ -1,9 +1,9 @@
 package com.fleetops.service;
 
-import com.fleetops.command.ProductionLineOccupiedEvent;
 import com.fleetops.domain.*;
 import com.fleetops.repository.*;
 import com.fleetops.exception.*;
+import com.fleetops.command.ProductionLineOccupiedEvent;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -40,6 +40,9 @@ public class ProductionLineService{
         if(robot.getCurrentTask() == null || !robot.getCurrentTask().getId().equals(taskId)
             || task.getRobot() == null || !robotId.equals(task.getRobot().getId())){
             throw new IllegalStateException("Task가 해당 Robot에게 배정되지 않았습니다.");
+        }
+        if(!task.isTaskStatusAssigned()){
+            throw new IllegalStateException("배정되지 않거나 이미 완료된 Task 입니다.");
         }
 
         ProductionLine productionLine = 

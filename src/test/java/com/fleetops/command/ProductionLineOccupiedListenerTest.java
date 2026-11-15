@@ -1,51 +1,114 @@
 package com.fleetops.command;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.AbstractPlatformTransactionManager;
 import org.springframework.transaction.support.DefaultTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.TransactionDefinition;
 
 import static org.mockito.Mockito.*;
 
 class ProductionLineOccupiedListenerTest {
+
+    private AnnotationConfigApplicationContext context;
+    private RobotCommandGateway gateway;
+    private TransactionTemplate transactionTemplate;
+
+    @BeforeEach
+    void setUp() {
+        context = new AnnotationConfigApplicationContext(TestConfiguration.class);
+        gateway = context.getBean(RobotCommandGateway.class);
+        transactionTemplate = new TransactionTemplate(new TestTransactionManager());
+    }
+
+    @AfterEach
+    void tearDown() {
+        context.close();
+    }
+
+    @Test
+    void startHandover_afterCommit_success() {
+        // Given
+        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 5);
+
+        // When
+        transactionTemplate.executeWithoutResult(status -> {
+            context.publishEvent(event);
+            // 아직 커밋하지 않았으므로 명령을 보내면 안 된다.
+            verifyNoInteractions(gateway);
+        });
+
+        // Then
+        verify(gateway).startHandover(1L, 5);
+    }
+
+    @Test
+    void startHandover_rollback_doesNotSendCommand() {
+        // Given
+        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 5);
+
+        // When
+        transactionTemplate.executeWithoutResult(status -> {
+            context.publishEvent(event);
+            status.setRollbackOnly();
+        });
+
+        // Then
+        verifyNoInteractions(gateway);
+    }
+
+    @Test
+    void startHandover_withoutTransaction_doesNotSendCommand() {
+        // Given
+        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 5);
+
+        // When
+        context.publishEvent(event);
+
+        // Then
+        verifyNoInteractions(gateway);
+    }
+
     @Configuration
     @EnableTransactionManagement
-    static class Config {
-        @Bean RobotCommandGateway gateway() { return mock(RobotCommandGateway.class); }
-        @Bean ProductionLineOccupiedListener listener(RobotCommandGateway gateway) {
+    static class TestConfiguration {
+
+        @Bean
+        RobotCommandGateway gateway() {
+            return mock(RobotCommandGateway.class);
+        }
+
+        @Bean
+        ProductionLineOccupiedListener listener(RobotCommandGateway gateway) {
             return new ProductionLineOccupiedListener(gateway);
         }
     }
 
-    @Test
-    void dispatchesOnlyAfterCommitAndSkipsRollbackAndNoTransaction() {
-        try (var context = new AnnotationConfigApplicationContext(Config.class)) {
-            var gateway = context.getBean(RobotCommandGateway.class);
-            var manager = new AbstractPlatformTransactionManager() {
-                @Override protected Object doGetTransaction() { return new Object(); }
-                @Override protected void doBegin(Object tx, TransactionDefinition definition) {}
-                @Override protected void doCommit(DefaultTransactionStatus status) {}
-                @Override protected void doRollback(DefaultTransactionStatus status) {}
-            };
-            var tx = new TransactionTemplate(manager);
-            var event = new ProductionLineOccupiedEvent(1L, 5);
-            tx.executeWithoutResult(status -> {
-                context.publishEvent(event);
-                verifyNoInteractions(gateway);
-            });
-            verify(gateway).startHandover(1L, 5);
-            clearInvocations(gateway);
-            tx.executeWithoutResult(status -> {
-                context.publishEvent(event);
-                status.setRollbackOnly();
-            });
-            context.publishEvent(event);
-            verifyNoInteractions(gateway);
+    // DB 저장은 하지 않고 Spring의 커밋/롤백 이벤트 실행 시점만 확인한다.
+    // 실제 DB 롤백은 HandoverIntegrationTest에서 별도로 확인한다.
+    static class TestTransactionManager extends AbstractPlatformTransactionManager {
+
+        @Override
+        protected Object doGetTransaction() {
+            return new Object();
+        }
+
+        @Override
+        protected void doBegin(Object transaction, TransactionDefinition definition) {
+        }
+
+        @Override
+        protected void doCommit(DefaultTransactionStatus status) {
+        }
+
+        @Override
+        protected void doRollback(DefaultTransactionStatus status) {
         }
     }
 }
