@@ -119,7 +119,7 @@ class FleetV1UseCaseIntegrationTest {
         awaitState(robot, task, new State(RobotOperationStatus.RETURNING, RobotConnectionStatus.ONLINE, task,
             TaskStatus.COMPLETED, robot, ProductionLineStatus.AVAILABLE, null), type.getHandoverSeconds());
         State returning = state(robot, task);
-        assertEquals(500, http.postForEntity(robotPath(robot) + "/handover-completion", null, String.class).getStatusCode().value());
+        assertEquals(500, http.postForEntity(robotPath(robot) + "/tasks/" + task + "/handover-completion", null, String.class).getStatusCode().value());
         assertEquals(returning, state(robot, task));
         Long waiting = taskService.createTask(type).getId();
         State before = state(robot, waiting);
@@ -128,12 +128,12 @@ class FleetV1UseCaseIntegrationTest {
         awaitState(robot, task, new State(RobotOperationStatus.IDLE, RobotConnectionStatus.ONLINE, null,
             TaskStatus.COMPLETED, robot, ProductionLineStatus.AVAILABLE, null), type.getTravelSeconds());
         State idle = state(robot, task);
-        assertEquals(500, http.postForEntity(robotPath(robot) + "/arrival/base", null, String.class).getStatusCode().value());
+        assertEquals(500, http.postForEntity(robotPath(robot) + "/tasks/" + task + "/arrival/base", null, String.class).getStatusCode().value());
         assertEquals(idle, state(robot, task));
         // The only producer of these calls in this test is the real AFTER_COMMIT event chain.
         // A reused robot legitimately receives a second handover/return command.
-        verify(gateway, atLeastOnce()).startHandover(robot, type.getHandoverSeconds());
-        verify(gateway, atLeastOnce()).startReturn(robot, type.getTravelSeconds());
+        verify(gateway, atLeastOnce()).startHandover(robot, task, type.getHandoverSeconds());
+        verify(gateway, atLeastOnce()).startReturn(robot, task, type.getTravelSeconds());
         return task;
     }
 
@@ -178,7 +178,7 @@ class FleetV1UseCaseIntegrationTest {
     @Test void failedRelease_rollsBackRobotAndTaskAndSendsNoReturn() {
         Long[] ids = fixture(RobotOperationStatus.HANDOVER, true);
         State before = state(ids[0], ids[1]);
-        assertThrows(IllegalStateException.class, () -> robotService.completeHandover(ids[0]));
+        assertThrows(IllegalStateException.class, () -> robotService.completeHandover(ids[1], ids[0]));
         assertEquals(before, state(ids[0], ids[1]));
         verifyNoInteractions(gateway);
     }
@@ -186,7 +186,7 @@ class FleetV1UseCaseIntegrationTest {
         Long[] ids = fixture(RobotOperationStatus.HANDOVER, false);
         State before = state(ids[0], ids[1]);
         tx.executeWithoutResult(status -> {
-            robotService.completeHandover(ids[0]);
+            robotService.completeHandover(ids[1], ids[0]);
             verifyNoInteractions(gateway);
             status.setRollbackOnly();
         });
@@ -198,7 +198,7 @@ class FleetV1UseCaseIntegrationTest {
         String path = robotPath(ids[0]);
         State before = state(ids[0], ids[1]);
         // Current implementation has no exception mapping: domain rejection is HTTP 500.
-        for (String suffix : List.of("/handover-completion", "/arrival/base",
+        for (String suffix : List.of("/tasks/" + ids[1] + "/handover-completion", "/tasks/" + ids[1] + "/arrival/base",
                 "/tasks/999999/arrival/productionline")) {
             assertEquals(500, http.postForEntity(path + suffix, null, String.class).getStatusCode().value());
             assertEquals(before, state(ids[0], ids[1]));
@@ -223,8 +223,8 @@ class FleetV1UseCaseIntegrationTest {
     }
     @Test void eventsWithoutTransaction_doNotSendCommands() {
         events.publishEvent(new TaskAssignedEvent(1L, 2L, 5));
-        events.publishEvent(new ProductionLineOccupiedEvent(1L, 3));
-        events.publishEvent(new RobotFinishHandoverEvent(1L, 5));
+        events.publishEvent(new ProductionLineOccupiedEvent(1L, 2L, 3));
+        events.publishEvent(new RobotFinishHandoverEvent(1L, 2L, 5));
         verifyNoInteractions(gateway);
     }
 }

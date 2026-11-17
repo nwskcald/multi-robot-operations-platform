@@ -53,6 +53,7 @@ public class MockAmr {
 
      public void simulateHandover(
             Long robotId,
+            Long taskId,
             int handoverSeconds
     ) {
         System.out.println(
@@ -62,7 +63,7 @@ public class MockAmr {
         scheduler.schedule(
             () -> {
                 try {
-                    handoverCompletedReporter.reportHandoverCompleted(robotId);
+                    handoverCompletedReporter.reportHandoverCompleted(robotId, taskId);
 
                     System.out.println(
                         "Robot " + robotId + " 자재인계 완료 보고 성공!"
@@ -81,6 +82,7 @@ public class MockAmr {
 
     public void simulateReturn(
             Long robotId,
+            Long taskId,
             int travelSeconds
     ) {
         System.out.println(
@@ -90,7 +92,7 @@ public class MockAmr {
         scheduler.schedule(
             () -> {
                 try {
-                    baseArrivalReporter.reportArrival(robotId);
+                    baseArrivalReporter.reportArrival(robotId, taskId);
 
                     System.out.println(
                         "Robot " + robotId + " base 도착 보고 성공!"

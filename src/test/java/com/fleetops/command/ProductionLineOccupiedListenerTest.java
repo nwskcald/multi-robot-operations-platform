@@ -35,7 +35,7 @@ class ProductionLineOccupiedListenerTest {
     @Test
     void startHandover_afterCommit_success() {
         // Given
-        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 5);
+        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 2L, 5);
 
         // When
         transactionTemplate.executeWithoutResult(status -> {
@@ -45,13 +45,13 @@ class ProductionLineOccupiedListenerTest {
         });
 
         // Then
-        verify(gateway).startHandover(1L, 5);
+        verify(gateway).startHandover(1L, 2L, 5);
     }
 
     @Test
     void startHandover_rollback_doesNotSendCommand() {
         // Given
-        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 5);
+        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 2L, 5);
 
         // When
         transactionTemplate.executeWithoutResult(status -> {
@@ -66,7 +66,7 @@ class ProductionLineOccupiedListenerTest {
     @Test
     void startHandover_withoutTransaction_doesNotSendCommand() {
         // Given
-        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 5);
+        ProductionLineOccupiedEvent event = new ProductionLineOccupiedEvent(1L, 2L, 5);
 
         // When
         context.publishEvent(event);

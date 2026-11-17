@@ -35,7 +35,7 @@ class RobotFinishHandoverListenerTest {
     @Test
     void startReturn_afterCommit_success() {
         // Given
-        RobotFinishHandoverEvent event = new RobotFinishHandoverEvent(1L, 5);
+        RobotFinishHandoverEvent event = new RobotFinishHandoverEvent(1L, 2L, 5);
 
         // When
         transactionTemplate.executeWithoutResult(status -> {
@@ -45,13 +45,13 @@ class RobotFinishHandoverListenerTest {
         });
 
         // Then
-        verify(gateway).startReturn(1L, 5);
+        verify(gateway).startReturn(1L, 2L, 5);
     }
 
     @Test
     void startReturn_rollback_doesNotSendCommand() {
         // Given
-        RobotFinishHandoverEvent event = new RobotFinishHandoverEvent(1L, 5);
+        RobotFinishHandoverEvent event = new RobotFinishHandoverEvent(1L, 2L, 5);
 
         // When
         transactionTemplate.executeWithoutResult(status -> {
@@ -66,7 +66,7 @@ class RobotFinishHandoverListenerTest {
     @Test
     void startReturn_withoutTransaction_doesNotSendCommand() {
         // Given
-        RobotFinishHandoverEvent event = new RobotFinishHandoverEvent(1L, 5);
+        RobotFinishHandoverEvent event = new RobotFinishHandoverEvent(1L, 2L, 5);
 
         // When
         context.publishEvent(event);

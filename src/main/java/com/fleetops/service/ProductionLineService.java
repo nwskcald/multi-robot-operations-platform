@@ -54,6 +54,7 @@ public class ProductionLineService{
         events.publishEvent(
             new ProductionLineOccupiedEvent(
                 robotId,
+                taskId,
                 productionLine.getType().getHandoverSeconds()
             )
         );

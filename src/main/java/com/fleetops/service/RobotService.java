@@ -54,7 +54,7 @@ public class RobotService{
     }
 
     @Transactional
-    public void completeHandover(Long robotId){
+    public void completeHandover(Long taskId, Long robotId){
         Robot robot = robotRepository.findByIdForUpdate(robotId)
             .orElseThrow(
                 () -> new RobotNotFoundException(robotId)
@@ -63,9 +63,13 @@ public class RobotService{
             throw new IllegalStateException("현재 수행 중인 Task가 없습니다.");
         }
 
-        Task task = taskRepository.findByIdForUpdate(robot.getCurrentTask().getId())
+        if (!robot.getCurrentTask().getId().equals(taskId)) {
+            throw new IllegalStateException("일치하지 않는 작업입니다.");
+        }
+
+        Task task = taskRepository.findByIdForUpdate(taskId)
             .orElseThrow(
-                () -> new TaskNotFoundException(robot.getCurrentTask().getId())
+                () -> new TaskNotFoundException(taskId)
             );
         if (task.getRobot() == null || !robotId.equals(task.getRobot().getId())) {
             throw new IllegalStateException("Task가 해당 Robot에게 배정되지 않았습니다.");
@@ -82,13 +86,14 @@ public class RobotService{
         events.publishEvent(
             new RobotFinishHandoverEvent(
                 robotId,
+                taskId,
                 productionLine.getType().getTravelSeconds()
             )
         );
     }
 
     @Transactional 
-    public void completeReturn(Long robotId){
+    public void completeReturn(Long taskId, Long robotId){
         Robot robot = robotRepository.findByIdForUpdate(robotId)
             .orElseThrow(
                 () -> new RobotNotFoundException(robotId)
@@ -97,9 +102,13 @@ public class RobotService{
             throw new IllegalStateException("현재 수행 중인 Task가 없습니다.");
         }
 
-        Task task = taskRepository.findByIdForUpdate(robot.getCurrentTask().getId())
+        if (!robot.getCurrentTask().getId().equals(taskId)) {
+            throw new IllegalStateException("일치하지 않는 작업입니다.");
+        }
+
+        Task task = taskRepository.findByIdForUpdate(taskId)
             .orElseThrow(
-                () -> new TaskNotFoundException(robot.getCurrentTask().getId())
+                () -> new TaskNotFoundException(taskId)
             );
         
         if(task.getRobot() == null || !task.getRobot().getId().equals(robotId)){

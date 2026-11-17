@@ -44,19 +44,19 @@ public class RobotController{
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{robotId}/handover-completion")
+    @PostMapping("/{robotId}/tasks/{taskId}/handover-completion")
     public ResponseEntity<Void> completeHandover(
-        @PathVariable Long robotId
+        @PathVariable Long robotId, @PathVariable Long taskId
     ){
-        robotService.completeHandover(robotId);
+        robotService.completeHandover(taskId, robotId);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping({"/{robotId}/arrival/base"})
+    @PostMapping({"/{robotId}/tasks/{taskId}/arrival/base"})
     public ResponseEntity<Void> reportBaseArrivalReporter(
-        @PathVariable Long robotId
+        @PathVariable Long robotId, @PathVariable Long taskId
     ){
-        robotService.completeReturn(robotId);
+        robotService.completeReturn(taskId, robotId);
         return ResponseEntity.noContent().build();
     }
 } 

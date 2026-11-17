@@ -96,7 +96,7 @@ class HandoverIntegrationTest {
             assertEquals(TaskStatus.ASSIGNED, foundTask.getStatus());
             assertEquals(ProductionLineStatus.OCCUPIED, foundLine.getStatus());
             return null;
-        }).when(robotCommandGateway).startHandover(robotId, 3);
+        }).when(robotCommandGateway).startHandover(robotId, taskId, 3);
 
         // When
         productionLineService.requestHandover(taskId, robotId);
@@ -109,7 +109,7 @@ class HandoverIntegrationTest {
         assertEquals(RobotOperationStatus.HANDOVER, foundRobot.getOperationStatus());
         assertEquals(TaskStatus.ASSIGNED, foundTask.getStatus());
         assertEquals(ProductionLineStatus.OCCUPIED, foundLine.getStatus());
-        verify(robotCommandGateway).startHandover(robotId, 3);
+        verify(robotCommandGateway).startHandover(robotId, taskId, 3);
         assertEquals(robotId, foundLine.getOccupyingRobotId());
     }
 
@@ -205,7 +205,7 @@ class HandoverIntegrationTest {
         productionLineService.requestHandover(taskId, robotId);
 
         // When: 첫 번째 완료 요청
-        robotService.completeHandover(robotId);
+        robotService.completeHandover(taskId, robotId);
 
         // Then
         Robot foundRobot = robotRepository.findById(robotId).orElseThrow();
@@ -220,7 +220,7 @@ class HandoverIntegrationTest {
         // When & Then
         assertThrows(
             IllegalStateException.class,
-            () -> robotService.completeHandover(robotId)
+            () -> robotService.completeHandover(taskId, robotId)
         );
         Robot foundRobotAfterDuplicate = robotRepository.findById(robotId).orElseThrow();
         Task foundTaskAfterDuplicate = taskRepository.findById(taskId).orElseThrow();
@@ -238,7 +238,7 @@ class HandoverIntegrationTest {
         // When & Then
         IllegalStateException exception = assertThrows(
             IllegalStateException.class,
-            () -> robotService.completeHandover(idleRobot.getId())
+            () -> robotService.completeHandover(taskId, idleRobot.getId())
         );
         assertEquals("현재 수행 중인 Task가 없습니다.", exception.getMessage());
     }
@@ -255,7 +255,7 @@ class HandoverIntegrationTest {
         // When & Then: 완료 처리 도중 예외가 발생하면 앞서 변경한 상태도 롤백되어야 한다.
         assertThrows(
             IllegalStateException.class,
-            () -> robotService.completeHandover(robotId)
+            () -> robotService.completeHandover(taskId, robotId)
         );
 
         Robot foundRobot = robotRepository.findById(robotId).orElseThrow();
@@ -278,7 +278,7 @@ class HandoverIntegrationTest {
             IllegalStateException.class,
             () -> productionLineService.requestHandover(taskId, robotId)
         );
-        verify(robotCommandGateway, times(1)).startHandover(robotId, 3);
+        verify(robotCommandGateway, times(1)).startHandover(robotId, taskId, 3);
     }
 
     @Test
@@ -346,11 +346,82 @@ class HandoverIntegrationTest {
             assertEquals(successfulRobotId, foundLine.getOccupyingRobotId());
             assertEquals(ProductionLineStatus.OCCUPIED, foundLine.getStatus());
             assertEquals(RobotOperationStatus.WAITING_FOR_HANDOVER, rejectedRobot.getOperationStatus());
-            verify(robotCommandGateway, times(1)).startHandover(anyLong(), eq(3));
+            verify(robotCommandGateway, times(1)).startHandover(anyLong(), anyLong(), eq(3));
         } finally {
             start.countDown();
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    void staleCompletionCallbacks_cannotChangeNextTaskOnSameRobot() {
+        // Finish task A, then reuse its robot for task B on a different line.
+        productionLineService.requestHandover(taskId, robotId);
+        robotService.completeHandover(taskId, robotId);
+        robotService.completeReturn(taskId, robotId);
+        Long nextTaskId = transactionTemplate.execute(status -> {
+            ProductionLine line = productionLineRepository.save(new ProductionLine(ProductionLineType.LINE_B));
+            Robot robot = robotRepository.findByIdForUpdate(robotId).orElseThrow();
+            Task task = taskRepository.save(new Task(line));
+            task.assignTo(robot);
+            robot.startDelivery(task);
+            robot.arriveAtDestination();
+            return task.getId();
+        });
+        productionLineService.requestHandover(nextTaskId, robotId);
+        clearInvocations(robotCommandGateway);
+        String prefix = "/api/robots/" + robotId + "/tasks/";
+
+        // A's delayed completion must not complete B or release either line.
+        assertEquals(500, restTemplate.postForEntity(prefix + taskId + "/handover-completion",
+            null, String.class).getStatusCode().value());
+        assertNextTaskState(nextTaskId, RobotOperationStatus.HANDOVER, TaskStatus.ASSIGNED,
+            ProductionLineStatus.OCCUPIED, robotId);
+        verifyNoInteractions(robotCommandGateway);
+
+        // The matching callback still succeeds; duplicates of A remain invalid during B's return.
+        assertEquals(204, restTemplate.postForEntity(prefix + nextTaskId + "/handover-completion",
+            null, Void.class).getStatusCode().value());
+        verify(robotCommandGateway).startReturn(robotId, nextTaskId, 10);
+        clearInvocations(robotCommandGateway);
+        assertEquals(500, restTemplate.postForEntity(prefix + taskId + "/arrival/base",
+            null, String.class).getStatusCode().value());
+        assertNextTaskState(nextTaskId, RobotOperationStatus.RETURNING, TaskStatus.COMPLETED,
+            ProductionLineStatus.AVAILABLE, null);
+        verifyNoInteractions(robotCommandGateway);
+
+        assertEquals(204, restTemplate.postForEntity(prefix + nextTaskId + "/arrival/base",
+            null, Void.class).getStatusCode().value());
+        transactionTemplate.executeWithoutResult(status -> {
+            Robot robot = robotRepository.findById(robotId).orElseThrow();
+            assertEquals(RobotOperationStatus.IDLE, robot.getOperationStatus());
+            assertNull(robot.getCurrentTask());
+            assertEquals(robotId, taskRepository.findById(nextTaskId).orElseThrow().getRobot().getId());
+        });
+        // Unscoped legacy routes must never fall back to the current task.
+        assertEquals(404, restTemplate.postForEntity("/api/robots/" + robotId + "/handover-completion",
+            null, String.class).getStatusCode().value());
+        assertEquals(404, restTemplate.postForEntity("/api/robots/" + robotId + "/arrival/base",
+            null, String.class).getStatusCode().value());
+    }
+
+    private void assertNextTaskState(Long nextTaskId, RobotOperationStatus robotStatus,
+                                    TaskStatus taskStatus, ProductionLineStatus lineStatus, Long occupant) {
+        transactionTemplate.executeWithoutResult(status -> {
+            Robot robot = robotRepository.findById(robotId).orElseThrow();
+            Task next = taskRepository.findById(nextTaskId).orElseThrow();
+            assertEquals(robotStatus, robot.getOperationStatus());
+            assertEquals(nextTaskId, robot.getCurrentTask().getId());
+            assertEquals(taskStatus, next.getStatus());
+            assertEquals(robotId, next.getRobot().getId());
+            assertEquals(lineStatus, next.getProductionLine().getStatus());
+            assertEquals(occupant, next.getProductionLine().getOccupyingRobotId());
+            Task previous = taskRepository.findById(taskId).orElseThrow();
+            assertEquals(TaskStatus.COMPLETED, previous.getStatus());
+            assertEquals(robotId, previous.getRobot().getId());
+            assertEquals(ProductionLineStatus.AVAILABLE, previous.getProductionLine().getStatus());
+            assertNull(previous.getProductionLine().getOccupyingRobotId());
+        });
     }
 
     // 두 요청이 같은 출발 신호를 기다리게 한다. 예상한 도메인 거절만 false로 처리한다.
@@ -378,10 +449,10 @@ class HandoverIntegrationTest {
         try {
             // 이 테스트에서만 인계 명령을 실제 Mock AMR로 전달해 HTTP 완료 콜백까지 확인한다.
             doAnswer(call -> {
-                mockAmrGateway.startHandover(robotId, 3);
+                mockAmrGateway.startHandover(robotId, taskId, 3);
                 return null;
             })
-                .when(robotCommandGateway).startHandover(robotId, 3);
+                .when(robotCommandGateway).startHandover(robotId, taskId, 3);
 
             // When
             String handoverUrl = "/api/robots/" + robotId + "/tasks/" + taskId + "/handover";
@@ -401,7 +472,7 @@ class HandoverIntegrationTest {
             // 완료 콜백은 HTTP 204만 성공으로 처리한다. 중복 완료는 거절되어야 한다.
             assertThrows(
                 IllegalStateException.class,
-                () -> new HandoverCompletedReporter(baseUrl).reportHandoverCompleted(robotId)
+                () -> new HandoverCompletedReporter(baseUrl).reportHandoverCompleted(robotId, taskId)
             );
         } finally {
             mockAmr.shutdown();

@@ -53,10 +53,10 @@ public class RobotArrivalIntegrationTest{
         HandoverCompletedReporter testHandoverReporter(Environment environment) {
             return new HandoverCompletedReporter("http://localhost") {
                 @Override
-                public void reportHandoverCompleted(Long robotId) throws Exception {
+                public void reportHandoverCompleted(Long robotId, Long taskId) throws Exception {
                     String baseUrl = "http://localhost:" + environment.getProperty("local.server.port");
                     HandoverCompletedReporter reporter = new HandoverCompletedReporter(baseUrl);
-                    reporter.reportHandoverCompleted(robotId);
+                    reporter.reportHandoverCompleted(robotId, taskId);
                 }
             };
         }

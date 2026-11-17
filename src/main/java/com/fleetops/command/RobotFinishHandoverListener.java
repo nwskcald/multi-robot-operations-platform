@@ -16,6 +16,6 @@ public class RobotFinishHandoverListener{
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onRobotFinishHandover(RobotFinishHandoverEvent event){
-        gateway.startReturn(event.robotId(), event.travelSeconds());
+        gateway.startReturn(event.robotId(), event.taskId(), event.travelSeconds());
     }
 }

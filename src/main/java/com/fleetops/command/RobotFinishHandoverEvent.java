@@ -1,5 +1,5 @@
 package com.fleetops.command;
 
 public record RobotFinishHandoverEvent(
-    Long robotId, int travelSeconds
+    Long robotId, Long taskId, int travelSeconds
 ){}

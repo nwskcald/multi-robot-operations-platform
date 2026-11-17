@@ -17,12 +17,12 @@ public class MockAmrGateway implements RobotCommandGateway {
     }
 
     @Override
-    public void startHandover(Long robotId, int handoverSeconds){
-        mockAmr.simulateHandover(robotId, handoverSeconds);
+    public void startHandover(Long robotId, Long taskId, int handoverSeconds){
+        mockAmr.simulateHandover(robotId, taskId, handoverSeconds);
     }
 
     @Override
-    public void startReturn(Long robotId, int travelSeconds){
-        mockAmr.simulateReturn(robotId, travelSeconds);
+    public void startReturn(Long robotId, Long taskId, int travelSeconds){
+        mockAmr.simulateReturn(robotId, taskId, travelSeconds);
     }
 }

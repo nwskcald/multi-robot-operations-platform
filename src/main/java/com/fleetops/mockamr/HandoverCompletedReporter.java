@@ -15,11 +15,11 @@ public class HandoverCompletedReporter {
         this.baseUrl = baseUrl;
     }
 
-    public void reportHandoverCompleted(Long robotId)
+    public void reportHandoverCompleted(Long robotId, Long taskId)
             throws Exception {
 
         String url = baseUrl + "/api/robots/"
-                + robotId + "/handover-completion";
+                + robotId + "/tasks/" + taskId + "/handover-completion";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))

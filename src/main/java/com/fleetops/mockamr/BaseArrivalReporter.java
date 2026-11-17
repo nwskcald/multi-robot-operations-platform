@@ -15,11 +15,11 @@ public class BaseArrivalReporter{
         this.baseUrl = baseUrl;
     }
 
-    public void reportArrival(Long robotId)
+    public void reportArrival(Long robotId, Long taskId)
             throws Exception{
             
         String url = baseUrl + "/api/robots/" + robotId
-            + "/arrival/base";
+            + "/tasks/" + taskId + "/arrival/base";
             
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(url))

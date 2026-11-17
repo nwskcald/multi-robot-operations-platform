@@ -16,6 +16,6 @@ public class ProductionLineOccupiedListener{
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onProductionLineOccupied(ProductionLineOccupiedEvent event){
-        gateway.startHandover(event.robotId(), event.handoverSeconds());
+        gateway.startHandover(event.robotId(), event.taskId(), event.handoverSeconds());
     }
 }
