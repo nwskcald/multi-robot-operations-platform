@@ -38,3 +38,5 @@ build/
 .env
 .env.*
 !.env.example
+# Generated binaries
+bin/
